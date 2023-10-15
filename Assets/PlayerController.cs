@@ -30,15 +30,35 @@ public class PlayerController : NetworkBehaviour
     public override void OnStartClient()
     {
         base.OnStartClient();
+
         if (base.IsOwner)
         {
-            playerCamera = Camera.main;
-            playerCamera.transform.position = new Vector3(transform.position.x, transform.position.y + cameraYOffset, transform.position.z);
-            playerCamera.transform.SetParent(transform);
+            // Obtem um spawnpoint disponível do SpawnpointManager
+            Transform spawnpoint = SpawnpointManager.GetAvailableSpawnpoint();
+
+            if (spawnpoint != null)
+            {
+                // Ajusta a posição do jogador para o spawnpoint
+                transform.position = spawnpoint.position;
+            }
+
+            CreatePlayerCamera();
         }
         else
         {
             gameObject.GetComponent<PlayerController>().enabled = false;
+        }
+    }
+
+    private void CreatePlayerCamera()
+    {
+        // Certifica-se de que a câmera ainda não existe
+        if (playerCamera == null)
+        {
+            // Cria uma nova câmera
+            playerCamera = new GameObject("PlayerCamera").AddComponent<Camera>();
+            playerCamera.transform.position = new Vector3(transform.position.x, transform.position.y + cameraYOffset, transform.position.z);
+            playerCamera.transform.SetParent(transform);
         }
     }
  
@@ -94,12 +114,81 @@ public class PlayerController : NetworkBehaviour
         characterController.Move(moveDirection * Time.deltaTime);
  
         // Player and Camera rotation
-        if (canMove && playerCamera != null)
+        if (canMove && playerCamera != null && !Cursor.visible)
         {
             rotationX += -Input.GetAxis("Mouse Y") * lookSpeed;
             rotationX = Mathf.Clamp(rotationX, -lookXLimit, lookXLimit);
             playerCamera.transform.localRotation = Quaternion.Euler(rotationX, 0, 0);
             transform.rotation *= Quaternion.Euler(0, Input.GetAxis("Mouse X") * lookSpeed, 0);
         }
+
+        // Check if the Escape key is pressed
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            ToggleCursorVisibility();
+        }
+    }
+
+    // Function to toggle cursor visibility
+    void ToggleCursorVisibility()
+    {
+        // If the cursor is currently locked, unlock it and make it visible
+        if (Cursor.lockState == CursorLockMode.Locked)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+        }
+        // If the cursor is currently unlocked, lock it and make it invisible
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+
+    private void OnDisable()
+    {
+        // Este método é chamado quando o objeto é desativado, incluindo desconexões
+        if (base.IsClient && IsLocalPlayer())
+        {
+            // Certifica-se de liberar recursos quando o jogador é desconectado
+            CleanUpOnDisconnect();
+        }
+    }
+
+    private void CleanUpOnDisconnect()
+    {
+        // Put your code here to clean up player-specific resources when they are disconnected
+        // For example, you can destroy the camera here if it still exists
+        if (playerCamera != null)
+        {
+            Destroy(playerCamera.gameObject);
+            playerCamera = null; // Certifica-se de que a referência seja nula após a destruição
+        }
+
+        // Libera o spawnpoint quando o jogador é desconectado
+        if (base.IsOwner)
+        {
+            SpawnpointManager.ReleaseSpawnpoint(transform);
+        }
+    }
+
+    public override void OnStopClient()
+    {
+        base.OnStopClient();
+
+        if (base.IsClient && IsLocalPlayer())
+        {
+            // O jogador está prestes a ser desconectado, chame a função de limpeza
+            CleanUpOnDisconnect();
+        }
+    }
+
+    // Check if the player has authority
+    private bool IsLocalPlayer()
+    {
+        // Replace this line with the appropriate method used by FishNet to check for authority
+        // For example, if FishNet uses something like 'IsLocalPlayer', replace the condition accordingly
+        return base.IsOwner;
     }
 }
