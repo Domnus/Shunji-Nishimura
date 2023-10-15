@@ -33,15 +33,6 @@ public class PlayerController : NetworkBehaviour
 
         if (base.IsOwner)
         {
-            // Obtem um spawnpoint disponível do SpawnpointManager
-            Transform spawnpoint = SpawnpointManager.GetAvailableSpawnpoint();
-
-            if (spawnpoint != null)
-            {
-                // Ajusta a posição do jogador para o spawnpoint
-                transform.position = spawnpoint.position;
-            }
-
             CreatePlayerCamera();
         }
         else
@@ -164,12 +155,6 @@ public class PlayerController : NetworkBehaviour
         {
             Destroy(playerCamera.gameObject);
             playerCamera = null; // Certifica-se de que a referência seja nula após a destruição
-        }
-
-        // Libera o spawnpoint quando o jogador é desconectado
-        if (base.IsOwner)
-        {
-            SpawnpointManager.ReleaseSpawnpoint(transform);
         }
     }
 
