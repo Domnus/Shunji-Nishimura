@@ -3,6 +3,7 @@ using FishNet.Transporting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using FishNet.Discovery;
 
 public class NetworkHudCanvases : MonoBehaviour
 {
@@ -205,9 +206,15 @@ public class NetworkHudCanvases : MonoBehaviour
             return;
 
         if (_serverState != LocalConnectionState.Stopped)
+        {
+            FindObjectOfType<NetworkDiscovery>().StopAdvertisingServer();
             _networkManager.ServerManager.StopConnection(true);
+        }
         else
+        {
+            FindObjectOfType<NetworkDiscovery>().StartAdvertisingServer();
             _networkManager.ServerManager.StartConnection();
+        }
 
         DeselectButtons();
     }
@@ -219,9 +226,16 @@ public class NetworkHudCanvases : MonoBehaviour
             return;
 
         if (_clientState != LocalConnectionState.Stopped)
+        {
+            FindObjectOfType<NetworkDiscovery>().StopSearchingForServers();
             _networkManager.ClientManager.StopConnection();
+        }
         else
+        {
+            FindObjectOfType<NetworkDiscovery>().StartSearchingForServers();
             _networkManager.ClientManager.StartConnection();
+        }
+            
 
         DeselectButtons();
     }
